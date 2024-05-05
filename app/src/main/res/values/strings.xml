@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">MediCall</string>
-    <string name="sign_in">Sign in</string>
+    <string name="sign_in">Login</string>
     <string name="user_name">User Name</string>
     <string name="password">Password</string>
     <string name="medicall">MediCall</string>
@@ -20,4 +20,5 @@
     <string name="err_msg_password_mismatch">Passwords mismatch</string>
     <string name="login_successfull">You are logged in successfully</string>
     <string name="medical_info">Medical Info</string>
+    <string name="or_sign_up">or Sign up</string>
 </resources>
