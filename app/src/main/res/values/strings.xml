@@ -1,3 +1,23 @@
 <resources>
     <string name="app_name">MediCall</string>
+    <string name="sign_in">Sign in</string>
+    <string name="user_name">User Name</string>
+    <string name="password">Password</string>
+    <string name="medicall">MediCall</string>
+    <string name="registration">Registration</string>
+    <string name="name">Name</string>
+    <string name="surname">Surname</string>
+    <string name="email">Email</string>
+    <string name="confirm_password">Confirm password</string>
+    <string name="sign_up">Sign up</string>
+    <string name="get_help">Get help</string>
+    <string name="history">History</string>
+    <string name="settings">Settings</string>
+    <string name="err_msg_enter_email">Please enter your email</string>
+    <string name="err_msg_enter_name">Please enter your name</string>
+    <string name="err_msg_enter_password">Please enter your password</string>
+    <string name="err_msg_enter_reppassword">Please confirm your password</string>
+    <string name="err_msg_password_mismatch">Passwords mismatch</string>
+    <string name="login_successfull">You are logged in successfully</string>
+    <string name="medical_info">Medical Info</string>
 </resources>
