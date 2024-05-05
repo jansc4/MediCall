@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "649957182697",
+    "project_id": "medicall-8c304",
+    "storage_bucket": "medicall-8c304.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:649957182697:android:d21f37d9e3fa5380e73478",
+        "android_client_info": {
+          "package_name": "edu.ib.medicall"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxobLpmGd415Shp2sMyyrn__zxlBRoGMg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
