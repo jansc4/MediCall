@@ -71,7 +71,8 @@
             android:minHeight="48dp"
             android:textAlignment="center"
             android:textColor="@color/red_200"
-            android:textColorHint="@color/red_500" />
+            android:textColorHint="@color/red_500"
+            android:imeOptions="actionNext"/>
 
         <EditText
             android:id="@+id/et_password"
@@ -83,7 +84,8 @@
             android:minHeight="48dp"
             android:textAlignment="center"
             android:textColor="@color/red_200"
-            android:textColorHint="@color/red_500" />
+            android:textColorHint="@color/red_500"
+            android:imeOptions="actionNext"/>
 
         <Button
             android:id="@+id/login_button"
