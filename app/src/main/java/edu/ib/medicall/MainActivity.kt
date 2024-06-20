@@ -78,8 +78,8 @@ class MainActivity : BaseActivity() {
         }
 
         historyCard.setOnClickListener {
-            Toast.makeText(this, "History clicked", Toast.LENGTH_SHORT).show()
-            // Tutaj możesz dodać logikę dla karty "History"
+            val intent = Intent(this, HistoryActivity::class.java)
+            startActivity(intent)
         }
 
         medicalInfoCard.setOnClickListener {
@@ -130,6 +130,8 @@ class MainActivity : BaseActivity() {
         val smsManager = SmsManager.getDefault()
         val emergencyPhoneNumber = "+48731150858" // Wstaw tutaj odpowiedni numer telefonu alarmowego
 
+        // Pobranie współrzędnych GPS (przykładowo)
+        val gpsCoordinates = getGPSLocation()
         try {
             smsManager.sendTextMessage(
                 emergencyPhoneNumber,
@@ -138,6 +140,27 @@ class MainActivity : BaseActivity() {
                 null,
                 null
             )
+            // Zapis historii do Firestore
+            val history = hashMapOf(
+                "date" to getCurrentDate(),
+                "time" to getCurrentTime(),
+                "location" to gpsCoordinates
+            )
+
+            val user = FirebaseAuth.getInstance().currentUser
+            val userId = user?.uid
+            if (userId != null) {
+                firestore.collection("users").document(userId).collection("history")
+                    .add(history)
+                    .addOnSuccessListener {
+                        //Toast.makeText(this, "Wiadomość SMS wysłana i historia zapisana", Toast.LENGTH_SHORT).show()
+                        showErrorSnackBar("Zapisano zdarzenie w historii", false)
+                    }
+                    .addOnFailureListener { exception ->
+                        //Toast.makeText(this, "Błąd zapisu historii: ${exception.message}", Toast.LENGTH_SHORT).show()
+                        showErrorSnackBar("Błąd zapisu historii: ${exception.message}", true)
+                    }
+            }
             //Toast.makeText(this, "Wiadomość SMS wysłana", Toast.LENGTH_SHORT).show()
             showErrorSnackBar("Wiadomość SMS wysłana", false)
         } catch (ex: SecurityException) {
@@ -167,5 +190,22 @@ class MainActivity : BaseActivity() {
 
     companion object {
         private const val REQUEST_SMS_PERMISSION = 101
+    }
+    private fun getGPSLocation(): String {
+        // Tutaj umieść kod do pobierania aktualnych współrzędnych GPS
+        // Zwróć przykładową wartość dla demonstracji
+        return "Latitude: 123.456, Longitude: 789.012"
+    }
+
+    private fun getCurrentDate(): String {
+        // Pobierz bieżącą datę
+        // Możesz użyć biblioteki SimpleDateFormat lub inne metody w zależności od Twoich potrzeb
+        return "DD/MM/YYYY" // Zwróć odpowiednią datę
+    }
+
+    private fun getCurrentTime(): String {
+        // Pobierz bieżący czas
+        // Możesz użyć biblioteki SimpleDateFormat lub inne metody w zależności od Twoich potrzeb
+        return "HH:MM" // Zwróć odpowiedni czas
     }
 }
