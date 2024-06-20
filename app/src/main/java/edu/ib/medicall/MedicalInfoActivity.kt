@@ -19,7 +19,7 @@ class MedicalInfoActivity : BaseActivity() {
 
         recyclerView = findViewById(R.id.rv_medical_info)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = MedicalInfoAdapter(emptyList()) // Początkowo adapter bez danych
+        adapter = MedicalInfoAdapter(emptyList())
         recyclerView.adapter = adapter
 
         firestore = FirebaseFirestore.getInstance()

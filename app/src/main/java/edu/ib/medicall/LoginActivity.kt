@@ -45,7 +45,7 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
         if (view != null) {
             when (view.id) {
                 // Jeśli kliknięto registerTextViewClickable (przycisk przejścia do rejestracji), uruchom aktywność rejestracji
-                // aby TextView mogł być klikalny, należy ustawić właściwą funkcję w pliku xml.
+
                 R.id.sign_up_button -> {
                     val intent = Intent(this, RegisterActivity::class.java)
                     startActivity(intent)

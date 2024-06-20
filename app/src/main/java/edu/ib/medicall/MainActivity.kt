@@ -2,6 +2,15 @@
 package edu.ib.medicall
 import android.Manifest
 import android.content.pm.PackageManager
+import android.annotation.SuppressLint
+import android.location.Location
+import android.os.Looper
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.Task
 import android.telephony.SmsManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -13,8 +22,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : BaseActivity() {
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var lastLocation: Location? = null
 
     private lateinit var welcomeTextView: TextView
     private lateinit var firestore: FirebaseFirestore
@@ -31,6 +45,8 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
         // Inicjalizacja elementów interfejsu użytkownika
         welcomeTextView = findViewById(R.id.tv_welcome)
         helpCard = findViewById(R.id.card_help)
@@ -40,6 +56,8 @@ class MainActivity : BaseActivity() {
 
         // Inicjalizacja Firestore
         firestore = FirebaseFirestore.getInstance()
+
+        getCurrentLocation()
 
         // Pobierz dane przesłane z poprzedniej aktywności
         userId = intent.getStringExtra("uID")
@@ -60,7 +78,7 @@ class MainActivity : BaseActivity() {
 
         // Obsługa kliknięć na karty
         helpCard.setOnClickListener {
-            val userInfo = "Name: $userName" // Możesz dodać więcej informacji, jeśli chcesz
+            val userInfo = "Name: $userName"
 
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -90,7 +108,7 @@ class MainActivity : BaseActivity() {
         }
 
         settingsCard.setOnClickListener {
-            // Przejdź do aktywności ustawień, przekazując dane użytkownika
+
             val intent = Intent(this, SettingsActivity::class.java)
             intent.putExtra("uID", userId)
             intent.putExtra("userName", userName)
@@ -98,7 +116,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    // Metoda do pobierania informacji medycznych z Firestore
+    // Metoda do pobierania informacji medycznych z Firestore - do testów
     private fun fetchMedicalInfo(userId: String) {
         firestore.collection("users").document(userId).collection("medicalInfo").document("details").get()
             .addOnSuccessListener { document ->
@@ -128,9 +146,9 @@ class MainActivity : BaseActivity() {
     }
     private fun sendSMS(userInfo: String) {
         val smsManager = SmsManager.getDefault()
-        val emergencyPhoneNumber = "+48731150858" // Wstaw tutaj odpowiedni numer telefonu alarmowego
+        val emergencyPhoneNumber = "+48731150858" //numer telefonu alarmowego
 
-        // Pobranie współrzędnych GPS (przykładowo)
+        // Pobranie współrzędnych GPS
         val gpsCoordinates = getGPSLocation()
         try {
             smsManager.sendTextMessage(
@@ -180,7 +198,7 @@ class MainActivity : BaseActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_SMS_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                sendSMS("Name: $userName") // Możesz dodać więcej informacji, jeśli chcesz
+                sendSMS("Name: $userName")
             } else {
                 //Toast.makeText(this, "Uprawnienia do wysyłania SMS są wymagane", Toast.LENGTH_SHORT).show()
                 showErrorSnackBar("Uprawnienia do wysyłania SMS są wymagane", true)
@@ -190,22 +208,77 @@ class MainActivity : BaseActivity() {
 
     companion object {
         private const val REQUEST_SMS_PERMISSION = 101
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1
     }
+//    private fun getGPSLocation(): String {
+//
+//        return "Latitude: 123.456, Longitude: 789.012"
+//    }
+
+//    private fun getCurrentDate(): String {
+//
+//        return "DD/MM/YYYY" // Zwróć odpowiednią datę
+//    }
+//
+//    private fun getCurrentTime(): String {
+//
+//        return "HH:MM" // Zwróć odpowiedni czas
+//    }
+    @SuppressLint("MissingPermission")
+    private fun getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
+            return
+        }
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            if (location != null) {
+                lastLocation = location
+            } else {
+                requestNewLocationData()
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestNewLocationData() {
+        val locationRequest = LocationRequest.create().apply {
+            interval = 10000
+            fastestInterval = 5000
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        }
+
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper()!!)
+    }
+
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val location = locationResult.lastLocation
+            if (location != null) {
+                lastLocation = location
+            }
+        }
+    }
+
     private fun getGPSLocation(): String {
-        // Tutaj umieść kod do pobierania aktualnych współrzędnych GPS
-        // Zwróć przykładową wartość dla demonstracji
-        return "Latitude: 123.456, Longitude: 789.012"
+        val location = lastLocation
+        return if (location != null) {
+            "Latitude: ${location.latitude}, Longitude: ${location.longitude}"
+        } else {
+            "Unable to get location"
+        }
     }
 
     private fun getCurrentDate(): String {
-        // Pobierz bieżącą datę
-        // Możesz użyć biblioteki SimpleDateFormat lub inne metody w zależności od Twoich potrzeb
-        return "DD/MM/YYYY" // Zwróć odpowiednią datę
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        return dateFormat.format(Date())
     }
 
     private fun getCurrentTime(): String {
-        // Pobierz bieżący czas
-        // Możesz użyć biblioteki SimpleDateFormat lub inne metody w zależności od Twoich potrzeb
-        return "HH:MM" // Zwróć odpowiedni czas
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        return timeFormat.format(Date())
     }
+
+
 }
+
