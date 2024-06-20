@@ -1,5 +1,5 @@
-
 package edu.ib.medicall
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.annotation.SuppressLint
@@ -10,7 +10,6 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.tasks.Task
 import android.telephony.SmsManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -24,6 +23,14 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
+import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
 
 class MainActivity : BaseActivity() {
 
@@ -41,58 +48,60 @@ class MainActivity : BaseActivity() {
     private var userId: String? = null
     private var userName: String? = null
 
+    private lateinit var notificationManager: NotificationManager
+    private val channelId = "i.apps.notifications"
+    private val description = "Test notification"
+    private var medicalInfo: String = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // Inicjalizacja elementów interfejsu użytkownika
+        // Initialize UI elements
         welcomeTextView = findViewById(R.id.tv_welcome)
         helpCard = findViewById(R.id.card_help)
         historyCard = findViewById(R.id.card_history)
         medicalInfoCard = findViewById(R.id.card_medical_info)
         settingsCard = findViewById(R.id.card_settings)
 
-        // Inicjalizacja Firestore
+        // Initialize Firestore
         firestore = FirebaseFirestore.getInstance()
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         getCurrentLocation()
 
-        // Pobierz dane przesłane z poprzedniej aktywności
+        // Retrieve data passed from the previous activity
         userId = intent.getStringExtra("uID")
         userName = intent.getStringExtra("userName")
 
-        // Ustawienie powitania w zależności od dostępnych danych
+        // Set welcome message based on available data
         if (userName != null) {
             welcomeTextView.text = "Welcome, $userName!"
-            //fetchMedicalInfo(userId!!)
+            fetchMedicalInfo(userId!!) { info ->
+                medicalInfo = info
+            }
         } else {
-            // Jeśli brak danych o imieniu, pobierz aktualnie zalogowanego użytkownika
             val user = FirebaseAuth.getInstance().currentUser
             if (user != null) {
                 welcomeTextView.text = "Welcome, ${user.email}!"
-                //fetchMedicalInfo(user.uid)
+                fetchMedicalInfo(user.uid) { info ->
+                    medicalInfo = info
+                }
             }
         }
 
-        // Obsługa kliknięć na karty
+        // Handle card clicks
         helpCard.setOnClickListener {
             val userInfo = "Name: $userName"
 
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.SEND_SMS
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
                 sendSMS(userInfo)
             } else {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.SEND_SMS),
-                    REQUEST_SMS_PERMISSION
-                )
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), REQUEST_SMS_PERMISSION)
             }
+            showNotification(medicalInfo)
         }
 
         historyCard.setOnClickListener {
@@ -108,7 +117,6 @@ class MainActivity : BaseActivity() {
         }
 
         settingsCard.setOnClickListener {
-
             val intent = Intent(this, SettingsActivity::class.java)
             intent.putExtra("uID", userId)
             intent.putExtra("userName", userName)
@@ -116,8 +124,8 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    // Metoda do pobierania informacji medycznych z Firestore - do testów
-    private fun fetchMedicalInfo(userId: String) {
+    // Method to fetch medical info from Firestore
+    private fun fetchMedicalInfo(userId: String, callback: (String) -> Unit) {
         firestore.collection("users").document(userId).collection("medicalInfo").document("details").get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
@@ -135,30 +143,31 @@ class MainActivity : BaseActivity() {
                         Emergency Number: $emergencyNumber
                     """.trimIndent()
 
-                    Toast.makeText(this, medicalInfo, Toast.LENGTH_LONG).show()
+                    callback(medicalInfo)
                 } else {
-                    Toast.makeText(this, "No medical information found.", Toast.LENGTH_LONG).show()
+                    callback("No medical information found.")
                 }
             }
             .addOnFailureListener { exception ->
-                Toast.makeText(this, "Error fetching medical information: ${exception.message}", Toast.LENGTH_LONG).show()
+                callback("Error fetching medical information: ${exception.message}")
             }
     }
+
     private fun sendSMS(userInfo: String) {
         val smsManager = SmsManager.getDefault()
-        val emergencyPhoneNumber = "+48731150858" //numer telefonu alarmowego
+        val emergencyPhoneNumber = "+48731150858" // Emergency phone number
 
-        // Pobranie współrzędnych GPS
+        // Get GPS coordinates
         val gpsCoordinates = getGPSLocation()
         try {
             smsManager.sendTextMessage(
                 emergencyPhoneNumber,
                 null,
-                "Potrzebuję pomocy! $userInfo",
+                "I need help! $userInfo. Location: $gpsCoordinates",
                 null,
                 null
             )
-            // Zapis historii do Firestore
+            // Save history to Firestore
             val history = hashMapOf(
                 "date" to getCurrentDate(),
                 "time" to getCurrentTime(),
@@ -171,37 +180,27 @@ class MainActivity : BaseActivity() {
                 firestore.collection("users").document(userId).collection("history")
                     .add(history)
                     .addOnSuccessListener {
-                        //Toast.makeText(this, "Wiadomość SMS wysłana i historia zapisana", Toast.LENGTH_SHORT).show()
-                        showErrorSnackBar("Zapisano zdarzenie w historii", false)
+                        showErrorSnackBar("Event saved in history", false)
                     }
                     .addOnFailureListener { exception ->
-                        //Toast.makeText(this, "Błąd zapisu historii: ${exception.message}", Toast.LENGTH_SHORT).show()
-                        showErrorSnackBar("Błąd zapisu historii: ${exception.message}", true)
+                        showErrorSnackBar("Error saving history: ${exception.message}", true)
                     }
             }
-            //Toast.makeText(this, "Wiadomość SMS wysłana", Toast.LENGTH_SHORT).show()
-            showErrorSnackBar("Wiadomość SMS wysłana", false)
+            showErrorSnackBar("SMS sent", false)
         } catch (ex: SecurityException) {
-            //Toast.makeText(this, "Brak uprawnień do wysyłania SMS", Toast.LENGTH_SHORT).show()
-            showErrorSnackBar("Brak uprawnień do wysyłania SMS", true)
+            showErrorSnackBar("No permission to send SMS", true)
         } catch (ex: Exception) {
-            //Toast.makeText(this, "Nie udało się wysłać SMS: ${ex.message}", Toast.LENGTH_SHORT).show()
-            showErrorSnackBar("Nie udało się wysłać SMS: ${ex.message}", true)
+            showErrorSnackBar("Failed to send SMS: ${ex.message}", true)
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_SMS_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 sendSMS("Name: $userName")
             } else {
-                //Toast.makeText(this, "Uprawnienia do wysyłania SMS są wymagane", Toast.LENGTH_SHORT).show()
-                showErrorSnackBar("Uprawnienia do wysyłania SMS są wymagane", true)
+                showErrorSnackBar("SMS permission is required", true)
             }
         }
     }
@@ -210,20 +209,7 @@ class MainActivity : BaseActivity() {
         private const val REQUEST_SMS_PERMISSION = 101
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1
     }
-//    private fun getGPSLocation(): String {
-//
-//        return "Latitude: 123.456, Longitude: 789.012"
-//    }
 
-//    private fun getCurrentDate(): String {
-//
-//        return "DD/MM/YYYY" // Zwróć odpowiednią datę
-//    }
-//
-//    private fun getCurrentTime(): String {
-//
-//        return "HH:MM" // Zwróć odpowiedni czas
-//    }
     @SuppressLint("MissingPermission")
     private fun getCurrentLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -279,6 +265,31 @@ class MainActivity : BaseActivity() {
         return timeFormat.format(Date())
     }
 
+    private fun showNotification(medicalInfo: String) {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationChannel = NotificationChannel(channelId, description, NotificationManager.IMPORTANCE_HIGH).apply {
+                enableLights(true)
+                lightColor = Color.GREEN
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(notificationChannel)
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Help Requested")
+            .setContentText("Medical Info")
+            .setSmallIcon(R.drawable.ic_launcher_background)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_launcher_background))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("Medical Info: $medicalInfo"))
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+
+        notificationManager.notify(1234, notification)
+    }
 }
 
