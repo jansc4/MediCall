@@ -27,23 +27,42 @@ class MedicalInfoActivity : BaseActivity() {
         val user = FirebaseAuth.getInstance().currentUser
         val userId = user?.uid
 
-        userId?.let { fetchMedicalInfo(it) }
+        if (userId != null) {
+            fetchUserInfoAndMedicalInfo(userId)
+        }
     }
 
-    private fun fetchMedicalInfo(userId: String) {
-        firestore.collection("users").document(userId).collection("medicalInfo").document("details").get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val medicalInfoMap = document.data ?: emptyMap()
-                    val medicalInfoList = medicalInfoMap.toList().map { Pair(it.first, it.second.toString()) }
+    private fun fetchUserInfoAndMedicalInfo(userId: String) {
+        val userInfoTask = firestore.collection("users").document(userId).collection("userInfo").document("basicInfo").get()
+        val medicalInfoTask = firestore.collection("users").document(userId).collection("medicalInfo").document("details").get()
 
-                    adapter.updateData(medicalInfoList)
+        userInfoTask.addOnSuccessListener { userInfoDocument ->
+            medicalInfoTask.addOnSuccessListener { medicalInfoDocument ->
+                if (userInfoDocument != null && userInfoDocument.exists() && medicalInfoDocument != null && medicalInfoDocument.exists()) {
+                    val userInfoMap = userInfoDocument.data ?: emptyMap()
+                    val medicalInfoMap = medicalInfoDocument.data ?: emptyMap()
+
+                    // Łączenie userInfo i medicalInfo w jedną listę
+                    val combinedInfoList = mutableListOf<Pair<String, String>>()
+
+                    userInfoMap.forEach { (key, value) ->
+                        combinedInfoList.add(Pair(key, value.toString()))
+                    }
+
+                    medicalInfoMap.forEach { (key, value) ->
+                        combinedInfoList.add(Pair(key, value.toString()))
+                    }
+
+                    // Aktualizacja danych w adapterze
+                    adapter.updateData(combinedInfoList)
                 } else {
-                    showErrorSnackBar("No medical information found.", true)
+                    showErrorSnackBar("No data found.", true)
                 }
-            }
-            .addOnFailureListener { exception ->
+            }.addOnFailureListener { exception ->
                 showErrorSnackBar("Error fetching medical information: ${exception.message}", true)
             }
+        }.addOnFailureListener { exception ->
+            showErrorSnackBar("Error fetching user information: ${exception.message}", true)
+        }
     }
 }

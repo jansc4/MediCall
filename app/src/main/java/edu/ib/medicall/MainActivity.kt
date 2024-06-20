@@ -1,6 +1,10 @@
 
 package edu.ib.medicall
-
+import android.Manifest
+import android.content.pm.PackageManager
+import android.telephony.SmsManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import android.content.Intent
 import android.os.Bundle
 import android.widget.TextView
@@ -10,7 +14,7 @@ import androidx.cardview.widget.CardView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
     private lateinit var welcomeTextView: TextView
     private lateinit var firestore: FirebaseFirestore
@@ -44,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         // Ustawienie powitania w zależności od dostępnych danych
         if (userName != null) {
             welcomeTextView.text = "Welcome, $userName!"
-            fetchMedicalInfo(userId!!)
+            //fetchMedicalInfo(userId!!)
         } else {
             // Jeśli brak danych o imieniu, pobierz aktualnie zalogowanego użytkownika
             val user = FirebaseAuth.getInstance().currentUser
@@ -56,8 +60,21 @@ class MainActivity : AppCompatActivity() {
 
         // Obsługa kliknięć na karty
         helpCard.setOnClickListener {
-            Toast.makeText(this, "Get Help clicked", Toast.LENGTH_SHORT).show()
-            // Tutaj możesz dodać logikę dla karty "Get Help"
+            val userInfo = "Name: $userName" // Możesz dodać więcej informacji, jeśli chcesz
+
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.SEND_SMS
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                sendSMS(userInfo)
+            } else {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.SEND_SMS),
+                    REQUEST_SMS_PERMISSION
+                )
+            }
         }
 
         historyCard.setOnClickListener {
@@ -108,5 +125,47 @@ class MainActivity : AppCompatActivity() {
             .addOnFailureListener { exception ->
                 Toast.makeText(this, "Error fetching medical information: ${exception.message}", Toast.LENGTH_LONG).show()
             }
+    }
+    private fun sendSMS(userInfo: String) {
+        val smsManager = SmsManager.getDefault()
+        val emergencyPhoneNumber = "+48731150858" // Wstaw tutaj odpowiedni numer telefonu alarmowego
+
+        try {
+            smsManager.sendTextMessage(
+                emergencyPhoneNumber,
+                null,
+                "Potrzebuję pomocy! $userInfo",
+                null,
+                null
+            )
+            //Toast.makeText(this, "Wiadomość SMS wysłana", Toast.LENGTH_SHORT).show()
+            showErrorSnackBar("Wiadomość SMS wysłana", false)
+        } catch (ex: SecurityException) {
+            //Toast.makeText(this, "Brak uprawnień do wysyłania SMS", Toast.LENGTH_SHORT).show()
+            showErrorSnackBar("Brak uprawnień do wysyłania SMS", true)
+        } catch (ex: Exception) {
+            //Toast.makeText(this, "Nie udało się wysłać SMS: ${ex.message}", Toast.LENGTH_SHORT).show()
+            showErrorSnackBar("Nie udało się wysłać SMS: ${ex.message}", true)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_SMS_PERMISSION) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                sendSMS("Name: $userName") // Możesz dodać więcej informacji, jeśli chcesz
+            } else {
+                //Toast.makeText(this, "Uprawnienia do wysyłania SMS są wymagane", Toast.LENGTH_SHORT).show()
+                showErrorSnackBar("Uprawnienia do wysyłania SMS są wymagane", true)
+            }
+        }
+    }
+
+    companion object {
+        private const val REQUEST_SMS_PERMISSION = 101
     }
 }
