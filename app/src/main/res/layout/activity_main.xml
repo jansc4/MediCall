@@ -55,6 +55,7 @@
 
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/card_help"
             android:layout_width="150dp"
             android:layout_height="150dp"
             android:layout_row="0"
@@ -89,6 +90,7 @@
         </androidx.cardview.widget.CardView>
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/card_history"
             android:layout_width="150dp"
             android:layout_height="150dp"
             android:layout_row="0"
@@ -123,6 +125,7 @@
         </androidx.cardview.widget.CardView>
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/card_medical_info"
             android:layout_width="150dp"
             android:layout_height="150dp"
             android:layout_row="1"
@@ -157,6 +160,7 @@
         </androidx.cardview.widget.CardView>
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/card_settings"
             android:layout_width="150dp"
             android:layout_height="150dp"
             android:layout_row="1"
@@ -190,4 +194,17 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </GridLayout>
+
+    <TextView
+        android:id="@+id/tv_welcome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome text"
+        app:layout_constraintBottom_toTopOf="@+id/action_menu"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/top_view"
+        android:textColor="@color/red_200"
+        android:textSize="25sp"
+        android:textStyle="bold"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

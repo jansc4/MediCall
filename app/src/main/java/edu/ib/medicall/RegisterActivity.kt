@@ -3,7 +3,6 @@ package edu.ib.medicall
 import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
-import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -11,6 +10,7 @@ import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
 
 class RegisterActivity : BaseActivity() {
 
@@ -21,6 +21,9 @@ class RegisterActivity : BaseActivity() {
     private var inputPassword: EditText? = null
     private var inputRepPass: EditText? = null
     private var backButton: TextView? = null
+
+    // Inicjalizacja Firestore
+    private lateinit var firestore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +37,9 @@ class RegisterActivity : BaseActivity() {
         inputRepPass = findViewById(R.id.user_password_con)
         backButton = findViewById(R.id.back_button)
 
+        // Inicjalizacja Firestore
+        firestore = FirebaseFirestore.getInstance()
+
         // Ustawienie nasłuchiwacza kliknięć dla przycisku rejestracji
         registerButton?.setOnClickListener{
             registerUser()
@@ -42,6 +48,7 @@ class RegisterActivity : BaseActivity() {
             goToLogin()
         }
     }
+
     // Walidacja danych rejestracji
     private fun validateRegisterDetails(): Boolean {
         return when {
@@ -81,6 +88,7 @@ class RegisterActivity : BaseActivity() {
         if (validateRegisterDetails()) {
             val login: String = inputEmail?.text.toString().trim() {it <= ' '}
             val password: String = inputPassword?.text.toString().trim() {it <= ' '}
+            val name: String = inputName?.text.toString().trim() {it <= ' '}
 
             // Utworzenie użytkownika w FirebaseAuth
             FirebaseAuth.getInstance().createUserWithEmailAndPassword(login, password)
@@ -88,11 +96,24 @@ class RegisterActivity : BaseActivity() {
                     OnCompleteListener<AuthResult> { task ->
                         if (task.isSuccessful) {
                             val firebaseUser: FirebaseUser = task.result!!.user!!
-                            showErrorSnackBar("You are registered successfully. Your user id is ${firebaseUser.uid}", false)
+                            val userId = firebaseUser.uid
 
-                            // Wylogowanie użytkownika i zakończenie aktywności
-                            FirebaseAuth.getInstance().signOut()
-                            finish()
+                            // Dodanie użytkownika do Firestore
+                            val userInfo = hashMapOf(
+                                "name" to name,
+                                "email" to login
+                            )
+
+                            firestore.collection("users").document(userId).collection("userInfo").document("basicInfo").set(userInfo)
+                                .addOnSuccessListener {
+                                    showErrorSnackBar("You are registered successfully. Your user id is $userId", false)
+                                    // Wylogowanie użytkownika i zakończenie aktywności
+                                    FirebaseAuth.getInstance().signOut()
+                                    finish()
+                                }
+                                .addOnFailureListener {
+                                    showErrorSnackBar("Error saving user information", true)
+                                }
                         } else {
                             showErrorSnackBar(task.exception!!.message.toString(), true)
                         }

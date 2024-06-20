@@ -67,12 +67,13 @@
             android:id="@+id/et_user_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:imeOptions="actionNext"
             android:hint="@string/user_name"
             android:minHeight="48dp"
             android:textAlignment="center"
             android:textColor="@color/red_200"
             android:textColorHint="@color/red_500"
-            android:imeOptions="actionNext"/>
+            />
 
         <EditText
             android:id="@+id/et_password"
@@ -85,7 +86,7 @@
             android:textAlignment="center"
             android:textColor="@color/red_200"
             android:textColorHint="@color/red_500"
-            android:imeOptions="actionNext"/>
+            android:imeOptions="actionDone"/>
 
         <Button
             android:id="@+id/login_button"

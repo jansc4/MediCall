@@ -9,13 +9,17 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
-class LoginActivity : BaseActivity(), View.OnClickListener{
+class LoginActivity : BaseActivity(), View.OnClickListener {
+
     // Deklaracje zmiennych dla pól widoku
     private var inputEmail: EditText? = null
     private var inputPassword: EditText? = null
     private var loginButton: Button? = null
 
+    // Inicjalizacja Firestore
+    private lateinit var firestore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +30,8 @@ class LoginActivity : BaseActivity(), View.OnClickListener{
         inputPassword = findViewById(R.id.et_password)
         loginButton = findViewById(R.id.login_button)
 
-
+        // Inicjalizacja Firestore
+        firestore = FirebaseFirestore.getInstance()
 
         // Ustawienie nasłuchiwacza kliknięć dla przycisku logowania
         loginButton?.setOnClickListener {
@@ -34,12 +39,13 @@ class LoginActivity : BaseActivity(), View.OnClickListener{
         }
 
     }
+
     // Metoda obsługująca kliknięcia
     override fun onClick(view: View?) {
         if (view != null) {
             when (view.id) {
                 // Jeśli kliknięto registerTextViewClickable (przycisk przejścia do rejestracji), uruchom aktywność rejestracji
-                // aby TextView mogł być klikalny,nalezy ustawić właściwą funkcję w pliku xml.
+                // aby TextView mogł być klikalny, należy ustawić właściwą funkcję w pliku xml.
                 R.id.sign_up_button -> {
                     val intent = Intent(this, RegisterActivity::class.java)
                     startActivity(intent)
@@ -58,41 +64,48 @@ class LoginActivity : BaseActivity(), View.OnClickListener{
                 showErrorSnackBar(resources.getString(R.string.err_msg_enter_password), true)
                 false
             }
-            else -> {
-                showErrorSnackBar("Your details are valid", false)
-                true
-            }
+            else -> true
         }
     }
 
     // Logowanie zarejestrowanego użytkownika
     private fun logInRegisteredUser() {
         if (validateLoginDetails()) {
-            val email = inputEmail?.text.toString().trim() { it <= ' ' }
-            val password = inputPassword?.text.toString().trim() { it <= ' ' }
+            val email = inputEmail?.text.toString().trim { it <= ' ' }
+            val password = inputPassword?.text.toString().trim { it <= ' ' }
 
             // Logowanie za pomocą FirebaseAuth
             FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        showErrorSnackBar(resources.getString(R.string.login_successfull), false) // text zdefiniowany w res -> values -> strings.xml
-                        goToMainActivity()
-                        finish()
+                        // Pobierz bieżącego użytkownika
+                        val user = FirebaseAuth.getInstance().currentUser
+                        val userId = user?.uid
+
+                        // Pobierz imię użytkownika z Firestore
+                        firestore.collection("users").document(userId!!).collection("userInfo").document("basicInfo")
+                            .get()
+                            .addOnSuccessListener { document ->
+                                if (document.exists()) {
+                                    val name = document.getString("name")
+
+                                    // Przekazanie wartości do MainActivity
+                                    val intent = Intent(this, MainActivity::class.java)
+                                    intent.putExtra("uID", userId)
+                                    intent.putExtra("userName", name)
+                                    startActivity(intent)
+                                    finish()
+                                } else {
+                                    showErrorSnackBar("User document doesn't exist", true)
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                showErrorSnackBar("Error retrieving user information: ${e.message}", true)
+                            }
                     } else {
                         showErrorSnackBar(task.exception!!.message.toString(), true)
                     }
                 }
         }
-    }
-
-    // Przejście do aktywności głównej
-    open fun goToMainActivity() {
-        val user = FirebaseAuth.getInstance().currentUser
-        val uid = user?.email.toString()
-
-        //Przekazanie wartości uid
-        val intent = Intent(this, MainActivity::class.java)
-        intent.putExtra("uID", uid)
-        startActivity(intent)
     }
 }
