@@ -28,4 +28,8 @@
     <string name="hint_emergency_contacts">Osoba zaufana</string>
     <string name="hint_emergency_number">numer osoby zaufanej\n</string>
     <string name="back">Wróć</string>
+    <string name="medimap">MediMap</string>
+    <string name="chat">Chat</string>
+    <string name="title_activity_maps">MapsActivity</string>
+    <string name="google_maps_key">AIzaSyC5Z67fK8A6gbswB6duwp8gbk0PahX5heg</string>
 </resources>

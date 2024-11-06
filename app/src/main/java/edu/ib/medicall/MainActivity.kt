@@ -44,6 +44,7 @@ class MainActivity : BaseActivity() {
     private lateinit var historyCard: CardView
     private lateinit var medicalInfoCard: CardView
     private lateinit var settingsCard: CardView
+    private lateinit var mediMap: CardView
 
     private var userId: String? = null
     private var userName: String? = null
@@ -65,6 +66,7 @@ class MainActivity : BaseActivity() {
         historyCard = findViewById(R.id.card_history)
         medicalInfoCard = findViewById(R.id.card_medical_info)
         settingsCard = findViewById(R.id.card_settings)
+        mediMap = findViewById(R.id.card_map)
 
         // Initialize Firestore
         firestore = FirebaseFirestore.getInstance()
@@ -120,6 +122,10 @@ class MainActivity : BaseActivity() {
             val intent = Intent(this, SettingsActivity::class.java)
             intent.putExtra("uID", userId)
             intent.putExtra("userName", userName)
+            startActivity(intent)
+        }
+        mediMap.setOnClickListener {
+            val intent = Intent(this, MapsActivity::class.java)
             startActivity(intent)
         }
     }
