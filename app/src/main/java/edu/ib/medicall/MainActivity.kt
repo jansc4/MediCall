@@ -125,9 +125,16 @@ class MainActivity : BaseActivity() {
             startActivity(intent)
         }
         mediMap.setOnClickListener {
-            val intent = Intent(this, MapsActivity::class.java)
-            startActivity(intent)
+            if (lastLocation != null) {
+                val intent = Intent(this, MapsActivity::class.java)
+                intent.putExtra("latitude", lastLocation!!.latitude)
+                intent.putExtra("longitude", lastLocation!!.longitude)
+                startActivity(intent)
+            } else {
+                Toast.makeText(this, "Brak dostępnej lokalizacji", Toast.LENGTH_SHORT).show()
+            }
         }
+
     }
 
     // Method to fetch medical info from Firestore
@@ -162,9 +169,8 @@ class MainActivity : BaseActivity() {
     private fun sendSMS(userInfo: String) {
         val smsManager = SmsManager.getDefault()
         val emergencyPhoneNumber = "+48731150858" // Emergency phone number
+        var gpsCoordinates = getGPSLocation()
 
-        // Get GPS coordinates
-        val gpsCoordinates = getGPSLocation()
         try {
             smsManager.sendTextMessage(
                 emergencyPhoneNumber,
