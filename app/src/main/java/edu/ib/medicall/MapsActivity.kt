@@ -6,6 +6,13 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import android.util.Log
+import android.view.View
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.RadioGroup
+import android.widget.SeekBar
+import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -27,6 +34,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
     private lateinit var binding: ActivityMapsBinding
     private lateinit var lastLocation: Location // Zmienna do przechowywania ostatniej lokalizacji
 
+    private lateinit var radioGroup: RadioGroup
+    private lateinit var seekBarDistance: SeekBar
+    private lateinit var tvDistanceValue: TextView
+    private lateinit var filterLayout: LinearLayout
+    private lateinit var toggleFiltersButton: Button
+
     companion object {
         private const val LOCATION_REQUEST_CODE = 1
     }
@@ -40,11 +53,55 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
+        // Uzyskaj odniesienie do elementów filtrów
+        radioGroup = findViewById(R.id.filter_radio_group)
+
+        seekBarDistance = findViewById(R.id.seekbar_distance)
+        tvDistanceValue = findViewById(R.id.tv_distance_value)
+        filterLayout = findViewById(R.id.filter_layout)
+        toggleFiltersButton = findViewById(R.id.toggle_filters_button)
+        filterLayout.visibility = View.GONE
+
         // Przekazanie lokalizacji z MainActivity
         lastLocation = Location("").apply {
             latitude = intent.getDoubleExtra("latitude", 0.0)
             longitude = intent.getDoubleExtra("longitude", 0.0)
         }
+        // Obsługa zmiany dystansu
+        seekBarDistance.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                tvDistanceValue.text = "$progress km"
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                // Wywołaj ponowne wyszukiwanie z nowym dystansem
+                val currentLatLong = LatLng(lastLocation.latitude, lastLocation.longitude)
+                mMap.clear() // Usuń istniejące markery
+                findNearby(currentLatLong)
+            }
+        })
+
+        // Obsługa przycisku do chowania/odkrywania filtrów
+        toggleFiltersButton.setOnClickListener {
+            if (filterLayout.visibility == View.VISIBLE) {
+                // Ukryj filtry
+                filterLayout.visibility = View.GONE
+                toggleFiltersButton.text = "Filtry"
+            } else {
+                // Pokaż filtry
+                filterLayout.visibility = View.VISIBLE
+                toggleFiltersButton.text = "Ukryj filtry"
+            }
+        }
+
+        radioGroup.setOnCheckedChangeListener { _, _ ->
+            // Wywołaj ponowne wyszukiwanie z nowym filtrem
+            val currentLatLong = LatLng(lastLocation.latitude, lastLocation.longitude)
+            mMap.clear() // Usuń istniejące markery
+            findNearby(currentLatLong)
+        }
+
+
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -81,23 +138,36 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         placeMarkerOnMap(currentLatLong)
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLong, 11f))
 
-        findNearbyUniversities(currentLatLong)
+        findNearby(currentLatLong)
     }
 
-    private fun findNearbyUniversities(location: LatLng) {
+
+    private fun findNearby(location: LatLng) {
         val apiKey = getString(R.string.google_maps_key)
         val locationString = "${location.latitude},${location.longitude}"
-        val radius = 5000
-        val type = "university"
+        val radius = (seekBarDistance.progress * 1000)
+
+        // Ustal typ na podstawie wybranego filtra
+        val type = when (radioGroup.checkedRadioButtonId) {
+            R.id.radio_pharmacy -> "pharmacy"
+            R.id.radio_doctor -> "doctor"
+            R.id.radio_health -> "health"
+            R.id.radio_hospital -> "hospital"
+            else -> "pharmacy" // Domyślna wartość, jeśli nic nie jest wybrane
+        }
+
+        // Utwórz URL z wybranym typem
         val url =
             "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$locationString&radius=$radius&type=$type&key=$apiKey"
 
+        // Wysyłanie żądania HTTP
         val request = object : StringRequest(
             Method.GET, url,
             Response.Listener { response ->
                 try {
                     val jsonObject = JSONObject(response)
                     val results = jsonObject.getJSONArray("results")
+                    Log.d("MapsActivity", "Liczba wyników: ${results.length()}")
 
                     for (i in 0 until results.length()) {
                         val place = results.getJSONObject(i)
@@ -123,6 +193,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
 
         Volley.newRequestQueue(this).add(request)
     }
+
 
     private fun placeMarkerOnMap(currentLatLong: LatLng) {
         val markerOptions = MarkerOptions().position(currentLatLong)
