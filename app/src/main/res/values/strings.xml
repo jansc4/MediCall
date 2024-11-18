@@ -33,4 +33,8 @@
     <string name="title_activity_maps">MapsActivity</string>
     <string name="google_maps_key">AIzaSyC5Z67fK8A6gbswB6duwp8gbk0PahX5heg</string>
     <string name="select_category">Wybierz kategorie</string>
+    <string name="title_activity_chat">ChatActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
 </resources>
