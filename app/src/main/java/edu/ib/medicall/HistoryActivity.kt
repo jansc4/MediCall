@@ -1,13 +1,11 @@
 package edu.ib.medicall
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import edu.ib.medicall.BaseActivity
-import edu.ib.medicall.MedicalInfoAdapter
+import edu.ib.medicall.adapter.MedicalInfoAdapter
 
 class HistoryActivity : BaseActivity() {
 

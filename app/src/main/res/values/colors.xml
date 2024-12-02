@@ -13,4 +13,6 @@
 
     <color name="colorSnackBarSuccess">#03F40F</color>
     <color name="colorSnackBarError">#EB1B63</color>
+    <color name="chat_color_sender">#1E88E5</color>
+    <color name="chat_color_receiver">#7CB342</color>
 </resources>

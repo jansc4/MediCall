@@ -84,41 +84,45 @@ class RegisterActivity : BaseActivity() {
     }
 
     // Rejestracja użytkownika
+    // Rejestracja użytkownika
     private fun registerUser() {
         if (validateRegisterDetails()) {
-            val login: String = inputEmail?.text.toString().trim() {it <= ' '}
-            val password: String = inputPassword?.text.toString().trim() {it <= ' '}
-            val name: String = inputName?.text.toString().trim() {it <= ' '}
+            val login: String = inputEmail?.text.toString().trim { it <= ' ' }
+            val password: String = inputPassword?.text.toString().trim { it <= ' ' }
+            val name: String = inputName?.text.toString().trim { it <= ' ' }
 
             // Utworzenie użytkownika w FirebaseAuth
             FirebaseAuth.getInstance().createUserWithEmailAndPassword(login, password)
-                .addOnCompleteListener(
-                    OnCompleteListener<AuthResult> { task ->
-                        if (task.isSuccessful) {
-                            val firebaseUser: FirebaseUser = task.result!!.user!!
-                            val userId = firebaseUser.uid
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val firebaseUser: FirebaseUser = task.result!!.user!!
+                        val userId = firebaseUser.uid
 
-                            // Dodanie użytkownika do Firestore
-                            val userInfo = hashMapOf(
-                                "name" to name,
-                                "email" to login
-                            )
+                        // Dodanie użytkownika do Firestore (bez subkolekcji)
+                        val userInfo = hashMapOf(
+                            "username" to name,
+                            "email" to login,
+                            "userId" to userId
+                        )
 
-                            firestore.collection("users").document(userId).collection("userInfo").document("basicInfo").set(userInfo)
-                                .addOnSuccessListener {
-                                    showErrorSnackBar("You are registered successfully. Your user id is $userId", false)
-                                    // Wylogowanie użytkownika i zakończenie aktywności
-                                    FirebaseAuth.getInstance().signOut()
-                                    finish()
-                                }
-                                .addOnFailureListener {
-                                    showErrorSnackBar("Error saving user information", true)
-                                }
-                        } else {
-                            showErrorSnackBar(task.exception!!.message.toString(), true)
-                        }
+                        firestore.collection("users").document(userId).set(userInfo)
+                            .addOnSuccessListener {
+                                showErrorSnackBar(
+                                    "You are registered successfully. Your user id is $userId",
+                                    false
+                                )
+                                // Wylogowanie użytkownika i zakończenie aktywności
+                                FirebaseAuth.getInstance().signOut()
+                                finish()
+                            }
+                            .addOnFailureListener {
+                                showErrorSnackBar("Error saving user information", true)
+                            }
+                    } else {
+                        showErrorSnackBar(task.exception!!.message.toString(), true)
                     }
-                )
+                }
         }
     }
+
 }

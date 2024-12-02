@@ -45,6 +45,7 @@ class MainActivity : BaseActivity() {
     private lateinit var medicalInfoCard: CardView
     private lateinit var settingsCard: CardView
     private lateinit var mediMap: CardView
+    private lateinit var chat: CardView
 
     private var userId: String? = null
     private var userName: String? = null
@@ -67,6 +68,7 @@ class MainActivity : BaseActivity() {
         medicalInfoCard = findViewById(R.id.card_medical_info)
         settingsCard = findViewById(R.id.card_settings)
         mediMap = findViewById(R.id.card_map)
+        chat = findViewById(R.id.card_chat)
 
         // Initialize Firestore
         firestore = FirebaseFirestore.getInstance()
@@ -133,6 +135,12 @@ class MainActivity : BaseActivity() {
             } else {
                 Toast.makeText(this, "Brak dostępnej lokalizacji", Toast.LENGTH_SHORT).show()
             }
+        }
+        chat.setOnClickListener {
+            val intent = Intent(this, ChatActivity::class.java)
+            intent.putExtra("uID", userId)
+            intent.putExtra("userName", userName)
+            startActivity(intent)
         }
 
     }

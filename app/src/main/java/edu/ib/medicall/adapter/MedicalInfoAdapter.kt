@@ -1,10 +1,11 @@
-package edu.ib.medicall
+package edu.ib.medicall.adapter
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import edu.ib.medicall.R
 
 class MedicalInfoAdapter(private var medicalInfoList: List<Pair<String, String>>) :
     RecyclerView.Adapter<MedicalInfoAdapter.ViewHolder>() {
