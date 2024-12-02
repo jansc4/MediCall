@@ -69,6 +69,7 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
     }
 
     // Logowanie zarejestrowanego użytkownika
+    // Logowanie użytkownika
     private fun logInRegisteredUser() {
         if (validateLoginDetails()) {
             val email = inputEmail?.text.toString().trim { it <= ' ' }
@@ -82,12 +83,12 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
                         val user = FirebaseAuth.getInstance().currentUser
                         val userId = user?.uid
 
-                        // Pobierz imię użytkownika z Firestore
-                        firestore.collection("users").document(userId!!).collection("userInfo").document("basicInfo")
+                        // Pobierz dane użytkownika bezpośrednio z dokumentu
+                        firestore.collection("users").document(userId!!)
                             .get()
                             .addOnSuccessListener { document ->
                                 if (document.exists()) {
-                                    val name = document.getString("name")
+                                    val name = document.getString("username")
 
                                     // Przekazanie wartości do MainActivity
                                     val intent = Intent(this, MainActivity::class.java)
@@ -108,4 +109,5 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
                 }
         }
     }
+
 }

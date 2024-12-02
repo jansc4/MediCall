@@ -1,11 +1,11 @@
 package edu.ib.medicall
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import edu.ib.medicall.adapter.MedicalInfoAdapter
 
 class MedicalInfoActivity : BaseActivity() {
 
@@ -33,25 +33,38 @@ class MedicalInfoActivity : BaseActivity() {
     }
 
     private fun fetchUserInfoAndMedicalInfo(userId: String) {
-        val userInfoTask = firestore.collection("users").document(userId).collection("userInfo").document("basicInfo").get()
-        val medicalInfoTask = firestore.collection("users").document(userId).collection("medicalInfo").document("details").get()
+        // Pobierz główny dokument użytkownika (zawierający username)
+        val userInfoTask = firestore.collection("users").document(userId).get()
+
+        // Pobierz dokument z subkolekcji medicalInfo/details
+        val medicalInfoTask = firestore.collection("users").document(userId)
+            .collection("medicalInfo").document("details").get()
 
         userInfoTask.addOnSuccessListener { userInfoDocument ->
             medicalInfoTask.addOnSuccessListener { medicalInfoDocument ->
-                if (userInfoDocument != null && userInfoDocument.exists() && medicalInfoDocument != null && medicalInfoDocument.exists()) {
-                    val userInfoMap = userInfoDocument.data ?: emptyMap()
-                    val medicalInfoMap = medicalInfoDocument.data ?: emptyMap()
+                if (userInfoDocument != null && userInfoDocument.exists() &&
+                    medicalInfoDocument != null && medicalInfoDocument.exists()
+                ) {
+                    // Pobierz dane z głównego dokumentu
+                    val username = userInfoDocument.getString("username") ?: "Unknown"
 
-                    // Łączenie userInfo i medicalInfo w jedną listę
-                    val combinedInfoList = mutableListOf<Pair<String, String>>()
+                    // Pobierz dane z dokumentu medicalInfo/details
+                    val allergies = medicalInfoDocument.getString("allergies") ?: "Not specified"
+                    val bloodGroup = medicalInfoDocument.getString("bloodGroup") ?: "Not specified"
+                    val chronicDiseases = medicalInfoDocument.getString("chronicDiseases") ?: "None"
+                    val emergencyContacts = medicalInfoDocument.getString("emergencyContacts") ?: "None"
+                    val emergencyNumber = medicalInfoDocument.getString("emergencyNumber") ?: "None"
 
-                    userInfoMap.forEach { (key, value) ->
-                        combinedInfoList.add(Pair(key, value.toString()))
-                    }
+                    // Tworzenie listy par (klucz-wartość)
+                    val combinedInfoList = listOf(
+                        Pair("Username", username),
+                        Pair("Allergies", allergies),
+                        Pair("Blood group", bloodGroup),
+                        Pair("Emergency Contact", emergencyContacts),
+                        Pair("Emergency Number", emergencyNumber),
+                        Pair("Chronic Conditions", chronicDiseases)
 
-                    medicalInfoMap.forEach { (key, value) ->
-                        combinedInfoList.add(Pair(key, value.toString()))
-                    }
+                    )
 
                     // Aktualizacja danych w adapterze
                     adapter.updateData(combinedInfoList)
@@ -65,4 +78,7 @@ class MedicalInfoActivity : BaseActivity() {
             showErrorSnackBar("Error fetching user information: ${exception.message}", true)
         }
     }
+
+
+
 }
